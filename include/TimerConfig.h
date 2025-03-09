@@ -19,9 +19,9 @@
 #define TMR_FREE(X) vPortFree(X)
 
 //define the frequency of the bus the timers are running from
-#define TMR_FREE(X) configPERIPHERAL_CLOCK_HZ
+#define TMR_CLK_Hz configPERIPHERAL_CLOCK_HZ
 
 //this array contains a list of timers with their base addresses aswell as their types. It must be initialised in the corresponding .c file.
-extern const TimerDescriptor_t Tmr_TimerTypes[];
+extern const TimerDescriptor_t Tmr_TimerMap[];
 
 #endif 
