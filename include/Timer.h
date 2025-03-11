@@ -52,14 +52,6 @@ typedef struct{
 	};
 } TConMap_t;
 
-typedef union{
-    struct{
-        uint32_t subPriority : 2;
-        uint32_t priority : 3;
-    };
-    uint32_t map;
-} TimerPrioBits_t;
-
 //Timer register map, also identical for Type A and Type B
 typedef struct{
 	TConMap_t TCON;
@@ -149,8 +141,11 @@ uint32_t TMR_getCount(TimerHandle_t * handle);
 void TMR_setPR(TimerHandle_t * handle, uint32_t prValue);
 
 void TMR_setIRQEnabled(TimerHandle_t * handle, uint32_t on);
+void TMR_setIRQEnabledByNumber(uint32_t number, uint32_t on);
 
 uint32_t TMR_isIRQEnabled(TimerHandle_t * handle);
+
+uint32_t TMR_setISR(TimerHandle_t * handle, TimerISR_t isr);
 
 void TMR_setInterruptPriority(TimerHandle_t * handle, uint32_t priority, uint32_t subPriority);
 

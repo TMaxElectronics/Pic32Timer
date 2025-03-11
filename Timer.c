@@ -197,8 +197,39 @@ uint32_t TMR_setCustomDivider(TimerHandle_t * handle, uint32_t preScaler, uint32
     //TODO
 }
 
+//assign an interrupt routine to a timer. To de-assign call with isr* = NULL
+uint32_t TMR_setISR(TimerHandle_t * handle, TimerISR_t isr){
+    //what number does the isr need to be assigned to?
+    uint32_t timerNumber = handle->number-1;
+    if(Tmr_is32Bit(handle)) timerNumber = handle->number;
+    
+    //are we assigning or de-assigning?
+    if(isr == NULL){
+        //write NULL into the isr list for the function and we're done
+        isrDescriptors[timerNumber].function = NULL;
+    }else{
+        //is there already a function assigned? If so we won't overwrite it
+        if(isrDescriptors[timerNumber] != NULL) return pdFAIL;
+        
+        //assign the functions
+        isrDescriptors[timerNumber].function = isr;
+    }
+    
+    return pdPASS;
+}
+
 void TMR_setIRQEnabled(TimerHandle_t * handle, uint32_t on){
     TimerDescriptor_t * desc = Tmr_is32Bit(handle) ? &Tmr_TimerMap[handle->number] : handle->descriptor;
+    
+    if(on){
+        desc->iecReg->SET = desc->intMask;
+    }else{
+        desc->iecReg->CLR = desc->intMask;
+    }
+}
+
+void TMR_setIRQEnabledByNumber(uint32_t number, uint32_t on){
+    TimerDescriptor_t * desc = (Tmr_TimerMap[number-1].registerMap->TCON.T32) ? &Tmr_TimerMap[number] : &Tmr_TimerMap[number - 1];
     
     if(on){
         desc->iecReg->SET = desc->intMask;
@@ -245,7 +276,7 @@ void TMR_setInterruptPriority(TimerHandle_t * handle, uint32_t priority, uint32_
     desc->ipcReg->CLR = 0b11111 << desc->ipcOffset;
     
     //then we generate the new priority bits
-    TimerPrioBits_t map = {.priority = priority, .subPriority = subPriority};
+    Pic32PrioBits_t map = {.priority = priority, .subPriority = subPriority};
     
     //after that we assign the shifted mask to the SET register to complete the operation
     desc->ipcReg->SET = map.map << desc->ipcOffset;
@@ -302,6 +333,14 @@ uint32_t TMR_getInterruptVector(TimerHandle_t * handle){
 static void TMR_isrHandler(uint32_t timerIndex){
     //a timer irq just occurred, check what we need to do to handle it
     
+    //is there a handle defined for the timer?
+    if(isrDescriptors[timerIndex].handle == NULL){
+        //no, switch off the timer and return
+        TMR_setIRQEnabledByNumber(timerIndex + 1, 0);
+        
+        return;
+    }
+    
     //first get the handle
     TimerHandle_t * handle = isrDescriptors[timerIndex].handle;
     
@@ -315,6 +354,7 @@ static void TMR_isrHandler(uint32_t timerIndex){
         //yes! call it
         (*isrDescriptors[timerIndex].function)(handle, 0);
     }
+    
 }
 
 
