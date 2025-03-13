@@ -24,9 +24,6 @@ static TimerISRDescriptor_t isrDescriptors[TMR_NUM_TIMERS];
 static uint32_t typeAPrescalersShifts[4] = {0, 3, 6, 8};
 static uint32_t typeBPrescalersShifts[8] = {0, 1, 2, 3, 4, 5, 6, 8};
 
-
-static void TMR_isrHandler(uint32_t timerIndex);
-
 //allocates a specified timer
 TimerHandle_t * Tmr_init(uint32_t timerNumber, uint32_t enable32BitMode){
 	//is the timer even available?
@@ -209,7 +206,7 @@ uint32_t TMR_setISR(TimerHandle_t * handle, TimerISR_t isr){
         isrDescriptors[timerNumber].function = NULL;
     }else{
         //is there already a function assigned? If so we won't overwrite it
-        if(isrDescriptors[timerNumber] != NULL) return pdFAIL;
+        if(isrDescriptors[timerNumber].function != NULL) return pdFAIL;
         
         //assign the functions
         isrDescriptors[timerNumber].function = isr;
@@ -330,7 +327,7 @@ uint32_t TMR_getInterruptVector(TimerHandle_t * handle){
  
 
 //function that gets called when an isr occurs. timerIndex is the timerNumber but already decremented by 1 (so the timer array index)
-static void TMR_isrHandler(uint32_t timerIndex){
+void TMR_isrHandler(uint32_t timerIndex){
     //a timer irq just occurred, check what we need to do to handle it
     
     //is there a handle defined for the timer?
@@ -356,97 +353,3 @@ static void TMR_isrHandler(uint32_t timerIndex){
     }
     
 }
-
-
-
-//generated ISR primitives, should be enough for most devices :3 If not it'll throw an error
-//special case: If freeRtos is present it will use one of the timers for its core tick and generates its own ISR for the corresponding vector. This ISR must be suppressed in this code to not cause problems with that
-
-#if defined(T1CON) && (configTICK_INTERRUPT_VECTOR != _TIMER_1_VECTOR)
-   void __ISR(_TIMER_1_VECTOR) T1ISR(){ 
-      IFS0CLR = _IFS0_T1IF_MASK;
-      TMR_isrHandler(0);
-   } 
-#endif 
- 
-#if defined(T2CON) && configTICK_INTERRUPT_VECTOR != _TIMER_2_VECTOR
-   void __ISR(_TIMER_2_VECTOR) T2ISR(){ 
-      IFS0CLR = _IFS0_T2IF_MASK;
-      TMR_isrHandler(1);
-   } 
-#endif 
- 
-#if defined(T3CON) && configTICK_INTERRUPT_VECTOR != _TIMER_3_VECTOR
-   void __ISR(_TIMER_3_VECTOR) T3ISR(){ 
-      IFS0CLR = _IFS0_T3IF_MASK;
-      TMR_isrHandler(2);
-   } 
-#endif 
- 
-#if defined(T4CON) && configTICK_INTERRUPT_VECTOR != _TIMER_4_VECTOR
-   void __ISR(_TIMER_4_VECTOR) T4ISR(){ 
-      IFS0CLR = _IFS0_T4IF_MASK;
-      TMR_isrHandler(3);
-   } 
-#endif 
- 
-#if defined(T5CON) && configTICK_INTERRUPT_VECTOR != _TIMER_5_VECTOR
-   void __ISR(_TIMER_5_VECTOR) T5ISR(){ 
-      IFS0CLR = _IFS0_T5IF_MASK;
-      TMR_isrHandler(4);
-   } 
-#endif 
- 
-#if defined(T6CON) && configTICK_INTERRUPT_VECTOR != _TIMER_6_VECTOR
-   void __ISR(_TIMER_6_VECTOR) T6ISR(){ 
-      IFS0CLR = _IFS0_T6IF_MASK;
-      TMR_isrHandler(5);
-   } 
-#endif 
- 
-#if defined(T7CON) && configTICK_INTERRUPT_VECTOR != _TIMER_7_VECTOR
-   void __ISR(_TIMER_7_VECTOR) T7ISR(){ 
-      IFS0CLR = _IFS0_T7IF_MASK;
-      TMR_isrHandler(6);
-   } 
-#endif 
- 
-#if defined(T8CON) && configTICK_INTERRUPT_VECTOR != _TIMER_8_VECTOR
-   void __ISR(_TIMER_8_VECTOR) T8ISR(){ 
-      IFS0CLR = _IFS0_T8IF_MASK;
-      TMR_isrHandler(7);
-   } 
-#endif 
- 
-#if defined(T9CON) && configTICK_INTERRUPT_VECTOR != _TIMER_9_VECTOR
-   void __ISR(_TIMER_9_VECTOR) T9ISR(){ 
-      IFS0CLR = _IFS0_T9IF_MASK;
-      TMR_isrHandler(8);
-   } 
-#endif 
- 
-#if defined(T10CON) && configTICK_INTERRUPT_VECTOR != _TIMER_10_VECTOR
-   void __ISR(_TIMER_10_VECTOR) T10ISR(){ 
-      IFS0CLR = _IFS0_T10IF_MASK;
-      TMR_isrHandler(9);
-   } 
-#endif 
- 
-#if defined(T11CON) && configTICK_INTERRUPT_VECTOR != _TIMER_11_VECTOR
-   void __ISR(_TIMER_11_VECTOR) T11ISR(){ 
-      IFS0CLR = _IFS0_T11IF_MASK;
-      TMR_isrHandler(10);
-   } 
-#endif 
- 
-#if defined(T12CON) && configTICK_INTERRUPT_VECTOR != _TIMER_12_VECTOR
-   void __ISR(_TIMER_12_VECTOR) T12ISR(){ 
-      IFS0CLR = _IFS0_T12IF_MASK;
-      TMR_isrHandler(11);
-   } 
-#endif 
- 
-   
-#if defined(T13CON)
-    #error There are more timers than generated ISRs :/ If you get this error you should add more in the lines above and update the #if
-#endif

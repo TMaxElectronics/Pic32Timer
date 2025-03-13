@@ -159,5 +159,6 @@ uint32_t * TMR_getTMRPointer(TimerHandle_t * handle);
 uint32_t TMR_getInterruptNumber(TimerHandle_t * handle);
 uint32_t TMR_getInterruptVector(TimerHandle_t * handle);
 
+void TMR_isrHandler(uint32_t timerIndex);
  
 #endif 
