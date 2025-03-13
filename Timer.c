@@ -2,7 +2,7 @@
 #include <xc.h>
 #include <sys/attribs.h>
 
-#if __has_include("FreeRTOS.h")
+#if !__is_compiling || __has_include("FreeRTOS.h")
 #include "FreeRTOS.h"
 #include "FreeRTOSConfig.h"
 #endif

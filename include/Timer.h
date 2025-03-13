@@ -6,9 +6,9 @@
 
 #include "System.h"
 
-/*#if !__has_include("TimerConfig.h")
+#if !__has_include("TimerConfig.h")
 	#error "No timer config file found in project!"
-#endif*/
+#endif
 
 #define TMR_FLAG_USED 0x00000001
 #define TMR_FLAG_32BIT_MODE 0x00000002
