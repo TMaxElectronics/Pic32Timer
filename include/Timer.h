@@ -6,7 +6,7 @@
 
 #include "System.h"
 
-#if !__has_include("TimerConfig.h")
+#if __is_compiling && !__has_include("TimerConfig.h")
 	#error "No timer config file found in project!"
 #endif
 
@@ -18,6 +18,8 @@ typedef enum {TmrType_INVALID, TmrType_A, TmrType_B_Master, TmrType_B_Slave} Tim
 
 //timer modes
 typedef enum {TmrMode_SingleShot, TmrMode_freeRunning, TmrMode_Off} TimerMode_t;
+
+#define Tmr_reset(handle) handle->registerMap.TMRCLR = 0xffffffff
 
 //TCon Register map. Type A and Type B have compatible bit maps, as all bits are in the same location across both only leaving out those that aren't available
 typedef struct{
@@ -96,12 +98,7 @@ typedef struct{
 } TimerHandle_t;
 
 //prototype of a function that can be used as an intterupt service routine
-typedef uint32_t (*TimerISR_t)(TimerHandle_t * handle, uint32_t flags);
-
-typedef struct{
-    TimerISR_t function;
-    TimerHandle_t * handle;
-} TimerISRDescriptor_t;
+typedef uint32_t (*TimerISR_t)(TimerHandle_t * handle, uint32_t flags, void* data);
 
 
 //allocates a specified timer
@@ -138,6 +135,8 @@ void TMR_setPrescaler(TimerHandle_t * handle, uint32_t scaler);
 
 uint32_t TMR_getCount(TimerHandle_t * handle);
 
+uint32_t TMR_calculatePR(TimerHandle_t * handle, uint32_t period_us, uint32_t divider);
+
 void TMR_setPR(TimerHandle_t * handle, uint32_t prValue);
 
 void TMR_setIRQEnabled(TimerHandle_t * handle, uint32_t on);
@@ -145,7 +144,7 @@ void TMR_setIRQEnabledByNumber(uint32_t number, uint32_t on);
 
 uint32_t TMR_isIRQEnabled(TimerHandle_t * handle);
 
-uint32_t TMR_setISR(TimerHandle_t * handle, TimerISR_t isr);
+uint32_t TMR_setISR(TimerHandle_t * handle, TimerISR_t isr, void * data);
 
 void TMR_setInterruptPriority(TimerHandle_t * handle, uint32_t priority, uint32_t subPriority);
 

@@ -15,6 +15,12 @@
 #define Tmr_is32Bit(handle) ((handle->descriptor->type != TmrType_A) && (handle->flags & TMR_FLAG_32BIT_MODE))
 #define TMR_REGS (*handle->descriptor->registerMap)
 
+typedef struct{
+    TimerISR_t function;
+    TimerHandle_t * handle;
+    void * data;
+} TimerISRDescriptor_t;
+
 //array to signal which timer is used and which isn'T
 static uint32_t availableTimers[TMR_NUM_TIMERS] = {[0 ... (TMR_NUM_TIMERS - 1)] = 1};
 
@@ -195,7 +201,7 @@ uint32_t TMR_setCustomDivider(TimerHandle_t * handle, uint32_t preScaler, uint32
 }
 
 //assign an interrupt routine to a timer. To de-assign call with isr* = NULL
-uint32_t TMR_setISR(TimerHandle_t * handle, TimerISR_t isr){
+uint32_t TMR_setISR(TimerHandle_t * handle, TimerISR_t isr, void * data){
     //what number does the isr need to be assigned to?
     uint32_t timerNumber = handle->number-1;
     if(Tmr_is32Bit(handle)) timerNumber = handle->number;
@@ -208,8 +214,9 @@ uint32_t TMR_setISR(TimerHandle_t * handle, TimerISR_t isr){
         //is there already a function assigned? If so we won't overwrite it
         if(isrDescriptors[timerNumber].function != NULL) return pdFAIL;
         
-        //assign the functions
+        //assign the function and data
         isrDescriptors[timerNumber].function = isr;
+        isrDescriptors[timerNumber].data = data;
     }
     
     return pdPASS;
@@ -294,6 +301,16 @@ uint32_t TMR_getCount(TimerHandle_t * handle){
     return handle->descriptor->registerMap->TMR;
 }
 
+uint32_t TMR_calculatePR(TimerHandle_t * handle, uint32_t period_us, uint32_t divider){
+    uint64_t pr = ((uint64_t) TMR_CLK_Hz >> (uint64_t) typeAPrescalersShifts[divider]) * (uint64_t) period_us;
+    
+    if(pr > (uint64_t) INT32_MAX){
+        return 0;
+    }
+    
+    return (uint32_t) pr;
+}
+
 void TMR_setPR(TimerHandle_t * handle, uint32_t prValue){
     //write the value to the PR register. If the timer is in 32bit mode the hardware will automatically map the lower and upper bytes accordingly
     handle->descriptor->registerMap->PR = prValue;
@@ -329,9 +346,10 @@ uint32_t TMR_getInterruptVector(TimerHandle_t * handle){
 //function that gets called when an isr occurs. timerIndex is the timerNumber but already decremented by 1 (so the timer array index)
 void TMR_isrHandler(uint32_t timerIndex){
     //a timer irq just occurred, check what we need to do to handle it
+    TimerISRDescriptor_t * isr = &isrDescriptors[timerIndex];
     
     //is there a handle defined for the timer?
-    if(isrDescriptors[timerIndex].handle == NULL){
+    if(isr->handle == NULL){
         //no, switch off the timer and return
         TMR_setIRQEnabledByNumber(timerIndex + 1, 0);
         
@@ -339,7 +357,7 @@ void TMR_isrHandler(uint32_t timerIndex){
     }
     
     //first get the handle
-    TimerHandle_t * handle = isrDescriptors[timerIndex].handle;
+    TimerHandle_t * handle = isr->handle;
     
     //is the timer in single shot mode? If so we should disable it now
     if(handle->currentMode == TmrMode_SingleShot){
@@ -347,9 +365,9 @@ void TMR_isrHandler(uint32_t timerIndex){
     }
     
     //is an isr assigned to this timer?
-    if(isrDescriptors[timerIndex].function != NULL){
+    if(isr->function != NULL){
         //yes! call it
-        (*isrDescriptors[timerIndex].function)(handle, 0);
+        (*isr->function)(handle, 0, isr->data);
     }
     
 }
