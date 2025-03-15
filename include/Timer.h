@@ -75,13 +75,13 @@ typedef struct{
 //timer descriptor, used in the timer array in TimerConfig.c
 typedef struct{
 	TimerType_t type;
-	TmrMap_t * registerMap;
+	TmrMap_t * volatile registerMap;
     
-    Pic32SetClearMap_t * iecReg;
-    Pic32SetClearMap_t * ifsReg;
+    Pic32SetClearMap_t * volatile iecReg;
+    Pic32SetClearMap_t * volatile ifsReg;
     uint32_t   intMask;
     
-    Pic32SetClearMap_t * ipcReg;
+    Pic32SetClearMap_t * volatile ipcReg;
     uint32_t ipcOffset;
     
 	uint32_t interruptNumber;
