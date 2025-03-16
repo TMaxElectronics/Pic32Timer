@@ -22,7 +22,7 @@ typedef enum {TmrMode_SingleShot, TmrMode_freeRunning, TmrMode_Off} TimerMode_t;
 #define Tmr_reset(handle) handle->registerMap.TMRCLR = 0xffffffff
 
 //TCon Register map. Type A and Type B have compatible bit maps, as all bits are in the same location across both only leaving out those that aren't available
-typedef struct{
+typedef union{
 	struct {
 		uint32_t :1;
 		uint32_t TCS:1;

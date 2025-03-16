@@ -49,18 +49,21 @@ TimerHandle_t * Tmr_init(uint32_t timerNumber, uint32_t enable32BitMode){
 
 	//mark timer(s) as not available
 	availableTimers[timerNumber - 1] = 0;
+    
     //32bit mode also uses the slave timer at timerNumber + 1
     if(enable32BitMode) availableTimers[timerNumber] = 0;
     
-	
     //initialise variables
-    memcpy(&ret->descriptor, &Tmr_TimerMap[timerNumber - 1], sizeof(TimerDescriptor_t));
+    ret->descriptor = &Tmr_TimerMap[timerNumber - 1];
 	ret->number = timerNumber;
 	ret->flags = enable32BitMode ? TMR_FLAG_32BIT_MODE : 0;
     ret->currentMode = TmrMode_Off;
     
     //set the 32bit mode bit. If the timer doesn't support it then the write won't do anything
     ret->descriptor->registerMap->TCON.T32 = enable32BitMode;
+    
+    //remember the handle for any interrupts
+    isrDescriptors[timerNumber - 1].handle = ret;
     
     //return the handle
     return ret;
@@ -85,14 +88,15 @@ void TMR_deinit(TimerHandle_t * handle){
         //is the timer in 32 bit mode?
         if(handle->flags & TMR_FLAG_32BIT_MODE){
             //yes, the timer at number+1 was ours too and also needs to be reset
-            Tmr_TimerMap[handle->number].registerMap->TCON.w = 0;
-            Tmr_TimerMap[handle->number].registerMap->PR = 0;
-            Tmr_TimerMap[handle->number].registerMap->TMR = 0;
+            Tmr_TimerMap[handle->number - 1].registerMap->TCON.w = 0;
+            Tmr_TimerMap[handle->number - 1].registerMap->PR = 0;
+            Tmr_TimerMap[handle->number - 1].registerMap->TMR = 0;
         }
     }
     
     //mark the timer as available again
     availableTimers[handle->number - 1] = 1;
+    isrDescriptors[handle->number - 1].handle = NULL;
     
     //before we free the memory invalidate the pointer, just incase it gets passed to us again on accident
     handle->number = 0;
@@ -302,7 +306,8 @@ uint32_t TMR_getCount(TimerHandle_t * handle){
 }
 
 uint32_t TMR_calculatePR(TimerHandle_t * handle, uint32_t period_us, uint32_t divider){
-    uint64_t pr = ((uint64_t) TMR_CLK_Hz >> (uint64_t) typeAPrescalersShifts[divider]) * (uint64_t) period_us;
+    uint64_t effClock_Hz = (uint64_t) TMR_CLK_Hz >> (uint64_t) ((handle->descriptor->type == TmrType_A) ? typeBPrescalersShifts[divider] : typeBPrescalersShifts[divider]);
+    uint64_t pr = (uint64_t) (effClock_Hz * (uint64_t) period_us) / (uint64_t) 1000000;
     
     if(pr > (uint64_t) INT32_MAX){
         return 0;
