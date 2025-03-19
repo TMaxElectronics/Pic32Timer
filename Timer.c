@@ -292,6 +292,14 @@ void TMR_setInterruptPriority(TimerHandle_t * handle, uint32_t priority, uint32_
     TMR_setIRQEnabled(handle, irqEnabled);
 }
 
+void TMR_setClockSource(TimerHandle_t * handle, uint32_t source, uint32_t gate, uint32_t sync){
+    //both timers behave the same way in this regard, with the exception of a type A timer, which also has the sync option.
+    //On a type B timer this is just ignored though so we set it anyway TODO evaluate if thats the case
+    TMR_REGS.TCON.TCS = source;
+    TMR_REGS.TCON.TGATE = gate;
+    TMR_REGS.TCON.TSYNC = sync;
+}
+
 void TMR_setPrescaler(TimerHandle_t * handle, uint32_t scaler){
     //check what type of timer we're dealing with
     if(handle->descriptor->type == TmrType_A){

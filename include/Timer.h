@@ -148,6 +148,8 @@ uint32_t TMR_setISR(TimerHandle_t * handle, TimerISR_t isr, void * data);
 
 void TMR_setInterruptPriority(TimerHandle_t * handle, uint32_t priority, uint32_t subPriority);
 
+void TMR_setClockSource(TimerHandle_t * handle, uint32_t source, uint32_t gate, uint32_t sync);
+
 uint32_t TMR_readIFS(TimerHandle_t * handle);
 
 void TMR_clearIFS(TimerHandle_t * handle);
